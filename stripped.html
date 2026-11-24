@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taste Experience</title>
+<style>
+@font-face{font-family:"IQOS";font-weight:700;font-style:normal;font-display:block;src:url(DATA) format("truetype")}
+@font-face{font-family:"IQOS";font-weight:400;font-style:normal;font-display:block;src:url(DATA) format("truetype")}
+:root{
+  --navy:#021a5c; --blue:#03398f; --ink:#ffffff; --cyan:#43c8ff; --shadow:rgba(0,10,45,.62);
+  --panel:#0b1f55; --panel-ink:#ffffff; --muted:#a9c2ff; --danger:#ff6b8a;
+  color-scheme:dark;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--navy:#021a5c;--blue:#03398f;--ink:#ffffff;--panel:#0b1f55;--panel-ink:#ffffff;--muted:#a9c2ff}}
+:root[data-theme="dark"]{--navy:#021a5c;--blue:#03398f;--ink:#ffffff;--panel:#0b1f55;--panel-ink:#ffffff;--muted:#a9c2ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#000;overflow:hidden}
+body{font-family:"IQOS",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+#vp{position:relative;width:100vw;height:100vh;height:100dvh;max-width:none;overflow:hidden}
+/* TV dipasang berdiri tapi browser tetap landscape: putar seluruh tampilan */
+#vp.rot90{position:absolute;left:100vw;top:0;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(90deg)}
+#vp.rot270{position:absolute;left:0;top:100vh;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(-90deg)}
+/* full-bleed backdrop: the current screen's background continued past the 9:16 stage by mirroring */
+.amb{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .35s ease}
+.amb.on{opacity:1}
+.vscan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.07) 0 2px,transparent 2px 5px);mix-blend-mode:multiply;opacity:.55}
+#stage{position:absolute;left:50%;top:50%;width:1080px;height:1920px;transform-origin:0 0;overflow:hidden;background:var(--navy)}
+.bg{position:absolute;inset:0;width:1080px;height:1920px;opacity:0;transition:opacity .35s ease}
+.bg.on{opacity:1}
+#fx{position:absolute;inset:0;width:1080px;height:1920px;pointer-events:none}
+.scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.07) 0 2px,transparent 2px 5px);mix-blend-mode:multiply;opacity:.55}
+
+.screen{position:absolute;inset:0;visibility:hidden;opacity:0}
+.screen.active{visibility:visible;opacity:1;transition:opacity .32s ease-out}
+.screen.leaving{visibility:visible;opacity:0;transition:opacity .16s ease-in}
+.screen.active .rise{animation:rise .42s cubic-bezier(.2,.8,.2,1) both}
+.screen.active .rise.d1{animation-delay:.05s}.screen.active .rise.d2{animation-delay:.1s}.screen.active .rise.d3{animation-delay:.15s}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+.abs{position:absolute;margin:0}
+.shadowed{text-shadow:5px 6px 7px var(--shadow)}
+.bar{background:#fff}
+.tag{font-size:33.6px;line-height:35px;font-weight:400}
+.tag.b{font-weight:700}
+
+/* glitch title */
+.ttl{font-weight:700;font-size:95.8px;line-height:95.8px;letter-spacing:-2.4px;white-space:nowrap}
+.gt{position:absolute;display:block}
+.gt::before,.gt::after{content:attr(data-text);position:absolute;left:0;top:0;opacity:0;text-shadow:none;pointer-events:none}
+.glitching .gt::before{opacity:.85;color:#ff3d7f;mix-blend-mode:screen;animation:gl1 .3s steps(3) both}
+.glitching .gt::after{opacity:.85;color:#3ee7ff;mix-blend-mode:screen;animation:gl2 .3s steps(3) both}
+@keyframes gl1{0%{clip-path:inset(10% 0 62% 0);transform:translate(-9px,0)}33%{clip-path:inset(55% 0 20% 0);transform:translate(7px,0)}66%{clip-path:inset(30% 0 45% 0);transform:translate(-5px,0)}100%{clip-path:inset(80% 0 4% 0);transform:translate(3px,0)}}
+@keyframes gl2{0%{clip-path:inset(60% 0 12% 0);transform:translate(8px,0)}33%{clip-path:inset(5% 0 70% 0);transform:translate(-8px,0)}66%{clip-path:inset(40% 0 35% 0);transform:translate(5px,0)}100%{clip-path:inset(15% 0 60% 0);transform:translate(-3px,0)}}
+.glitching .jit{animation:jit .3s steps(4) both}
+@keyframes jit{0%{transform:translate(0,0)}25%{transform:translate(-7px,0)}50%{transform:translate(5px,0)}75%{transform:translate(-3px,0)}100%{transform:none}}
+
+/* question */
+.q{left:0;width:1080px;text-align:center;font-weight:700;font-size:34.1px;line-height:41.6px;top:329.3px}
+.opt{position:absolute;left:168px;width:763px;height:505px;padding:0;border:0;background:none;cursor:pointer;font-family:inherit;color:#fff;transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .22s ease,filter .22s ease;transform-origin:50% 50%;outline:none}
+.opt img{position:absolute;left:0;top:0;width:763px;height:505px;display:block;pointer-events:none}
+.opt .lbl{position:absolute;left:53.5px;top:331.7px;width:636.7px;height:123.6px;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;font-size:35.4px;line-height:44.9px;padding-top:8px}
+.opt .lbl::before{content:"";position:absolute;inset:0;clip-path:polygon(19.2px 0,100% 0,100% 104.6px,617.8px 100%,0 100%,0 19.2px);background:linear-gradient(90deg,#0c5fe0 0%,#1f8dff 60%,#33c4ff 100%);opacity:0;transition:opacity .2s ease}
+.opt .lbl span{position:relative;text-shadow:4px 5px 6px var(--shadow)}
+.opt.sel{transform:scale(1.03);filter:drop-shadow(0 0 26px rgba(80,200,255,.95))}
+.opt.sel .lbl::before{opacity:1}
+.opt.dim{opacity:.5;filter:saturate(.55)}
+.opt:active{transform:scale(.985)}
+.opt:focus-visible{outline:4px solid var(--cyan);outline-offset:6px}
+
+/* CTA */
+.cta{position:absolute;left:254.9px;width:570px;height:109.9px;padding:0;border:0;background:none;cursor:pointer;color:#fff;font-family:inherit;font-weight:700;font-size:48px;line-height:48px;outline:none;transition:opacity .2s ease,transform .15s ease}
+.cta img{position:absolute;left:-17.3px;top:-37.9px;width:645.5px;height:182.5px;pointer-events:none}
+.cta .ct{position:absolute;left:0;right:0;top:50%;transform:translateY(calc(-50% - 5.4px));text-align:center;text-shadow:4px 5px 6px var(--shadow);white-space:nowrap}
+.cta.sm{font-size:39.6px}
+.cta.sm .ct{transform:translateY(-55%)}
+.cta[disabled]{opacity:.42;cursor:default}
+.cta:not([disabled]):active{transform:scale(.97)}
+.cta:focus-visible{outline:4px solid var(--cyan);outline-offset:6px}
+.cta.pulse{animation:pulse .6s ease-out}
+@keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(67,200,255,0))}40%{filter:drop-shadow(0 0 22px rgba(67,200,255,.9))}100%{filter:drop-shadow(0 0 0 rgba(67,200,255,0))}}
+
+/* result */
+.rframe{left:100.8px;top:364.8px;width:883px;height:1101.5px;filter:drop-shadow(6px 10px 14px rgba(0,8,40,.45))}
+.rh{left:0;width:1080px;text-align:center;font-weight:700;font-size:59px;line-height:55.9px;top:647px}
+.rdiv{left:396.2px;top:798.5px;width:276.5px;height:2.6px;background:#fff}
+.rb{left:220px;width:640px;text-align:center;font-weight:400;font-size:32.2px;line-height:39.1px;top:880.8px}
+.rb p,.mb p{margin:0}
+.rb p+p{margin-top:39.1px}
+
+/* QR */
+.qrbox{left:129.6px;top:360px;width:825.5px;height:936px}
+.qr{left:257.3px;top:543.6px;width:565px;height:565px}
+.qr svg{width:100%;height:100%;display:block}
+.qrfail{left:257.3px;top:780px;width:565px;text-align:center;color:#03398f;font-size:30px;line-height:38px;font-weight:700}
+.cap{left:0;width:1080px;text-align:center;font-weight:700;font-size:39.8px;line-height:45px;top:1366.9px;padding-left:7px}
+
+/* mobile result */
+.mbg{left:0;top:0;width:1080px;height:1920px}
+.mh{left:0;width:1060px;text-align:center;font-weight:700;font-size:59px;line-height:65px;top:868.1px}
+.mdiv{left:388.3px;top:1053px;width:276.5px;height:3px;background:#fff}
+.mb{left:0;width:1066px;text-align:center;font-weight:700;font-size:39.7px;line-height:45px;top:1110.1px}
+.mb p+p{margin-top:45px}
+
+
+/* fluid result card */
+.rin{position:absolute;left:151.44px;top:415.9px;width:777.1px;height:995.5px;overflow:hidden;background:#020a24;clip-path:polygon(7.2px 0,100% 0,100% calc(100% - 7.2px),calc(100% - 7.2px) 100%,0 100%,0 7.2px)}
+.pin{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:#020a24}
+:root{--ease-out:cubic-bezier(.23,1,.32,1);--ease-in-out:cubic-bezier(.77,0,.175,1)}
+.rev{position:absolute;inset:0}
+.vcard{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;pointer-events:none;background:#000}
+.rin .vcard{transform:translate(0,-259.75px) scale(.71954)}
+.vcard img,.vcard video,.vcard canvas{position:absolute;left:0;top:0;width:1080px;height:1920px;object-fit:cover;display:block}
+.vcard video{opacity:0;transition:opacity .4s ease}
+.vcard video.on{opacity:1}
+.vcard canvas.gb{mix-blend-mode:screen}
+.screen.active .rev .rise{animation:none;opacity:0}
+.screen.active .rev.shown .rise{animation:rise .52s var(--ease-out) both}
+.screen.active .rev.shown .rise.d1{animation-delay:.12s}.screen.active .rev.shown .rise.d2{animation-delay:.22s}.screen.active .rev.shown .rise.d3{animation-delay:.32s}
+.cta.pending{opacity:0;pointer-events:none;transform:translateY(14px)}
+.cta.reveal{transition:opacity .4s var(--ease-out),transform .4s var(--ease-out)}
+
+/* in-box "scan & blend" loader */
+.mix{position:absolute;inset:0;overflow:hidden;background:#030b26;color:#fff}
+.mix[hidden]{display:none}
+.mx-l{position:absolute;inset:0;opacity:0}
+.mx-l img{position:absolute;left:-6%;top:-6%;width:112%;height:112%;object-fit:cover;display:block;will-change:transform,filter}
+.mx-l.b1{mix-blend-mode:screen}
+.mx-l.b2{mix-blend-mode:hard-light}
+.mx-tint{position:absolute;inset:0;opacity:0;mix-blend-mode:color;background:radial-gradient(circle at 28% 30%,var(--c0) 0,transparent 55%),radial-gradient(circle at 72% 70%,var(--c1) 0,transparent 58%),linear-gradient(135deg,var(--c0),var(--c1))}
+.mx-glow{position:absolute;inset:0;opacity:0;mix-blend-mode:screen;background:radial-gradient(circle at 50% 50%,var(--c1) 0,transparent 60%)}
+.mx-proc{position:absolute;inset:0;clip-path:inset(0 0 100% 0);background-image:linear-gradient(rgba(120,220,255,.28) 1px,transparent 1px),linear-gradient(90deg,rgba(120,220,255,.28) 1px,transparent 1px);background-size:28px 28px;background-color:rgba(20,120,255,.12)}
+.mx-scan{position:absolute;left:0;right:0;top:0;height:120px;transform:translateY(-130px);background:linear-gradient(180deg,transparent,rgba(80,200,255,.18) 60%,rgba(170,235,255,.65) 96%,#fff 100%);box-shadow:0 2px 26px 6px rgba(90,210,255,.65)}
+.box{position:absolute;border:3px solid #7fe3ff;box-shadow:0 0 14px rgba(110,220,255,.7),inset 0 0 14px rgba(110,220,255,.35);opacity:0}
+.box b{position:absolute;left:-3px;top:-36px;padding:4px 10px;background:#7fe3ff;color:#031a4a;font-size:20px;line-height:24px;letter-spacing:.08em;white-space:nowrap}
+.mx-hud{position:absolute;inset:0;pointer-events:none}
+.mx-step{position:absolute;left:36px;top:30px;font-weight:700;font-size:26px;letter-spacing:.24em;text-shadow:0 0 12px rgba(0,0,0,.7)}
+.mx-step i{display:inline-block;width:12px;height:12px;border-radius:50%;background:#ff3b5c;margin-right:12px;vertical-align:2px;animation:rec 0.8s steps(2) infinite}
+@keyframes rec{50%{opacity:.2}}
+.mx-pct{position:absolute;right:36px;top:30px;font-weight:700;font-size:26px;letter-spacing:.14em;font-variant-numeric:tabular-nums;text-shadow:0 0 12px rgba(0,0,0,.7)}
+.mx-cap{position:absolute;left:30px;right:30px;bottom:34px;text-align:center;font-weight:700;font-size:36px;line-height:42px;letter-spacing:.04em;text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 2px rgba(0,0,0,.9)}
+.mx-bar{position:absolute;left:36px;right:36px;bottom:14px;height:5px;background:rgba(255,255,255,.18)}
+.mx-bar i{position:absolute;inset:0;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#7fe3ff,#fff)}
+.mx-match{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;opacity:0}
+.mx-match .t{font-weight:700;font-size:30px;letter-spacing:.34em;text-shadow:0 0 16px rgba(0,0,0,.6)}
+.mx-match .w{font-weight:700;font-size:132px;line-height:136px;letter-spacing:.04em;color:#fff;text-shadow:0 0 30px var(--c1),0 0 60px var(--c0)}
+.mix.glitch{animation:mxg .42s steps(1) both}
+@keyframes mxg{0%{clip-path:inset(0 0 62% 0);transform:translate(-18px,0)}12%{clip-path:inset(30% 0 40% 0);transform:translate(22px,0)}24%{clip-path:inset(55% 0 12% 0);transform:translate(-10px,0)}36%{clip-path:inset(8% 0 70% 0);transform:translate(14px,0)}48%{clip-path:inset(0 0 0 0);transform:translate(-6px,0);filter:hue-rotate(90deg) saturate(2)}60%{clip-path:inset(40% 0 30% 0);transform:translate(16px,0);filter:none}72%{clip-path:inset(70% 0 0 0);transform:translate(-20px,0)}84%{clip-path:inset(0 0 0 0);transform:none;opacity:.6}100%{opacity:0;clip-path:inset(0 0 0 0)}}
+.mx-rgb{position:absolute;inset:0;opacity:0;mix-blend-mode:screen;background:repeating-linear-gradient(180deg,rgba(255,0,70,.0) 0 22px,rgba(255,0,70,.55) 22px 30px,rgba(0,0,0,0) 30px 61px,rgba(0,230,255,.5) 61px 66px,transparent 66px 97px)}
+.mix.glitch .mx-rgb{animation:rgbF .42s steps(4) both}
+@keyframes rgbF{0%{opacity:1;transform:translateY(0)}50%{opacity:.8;transform:translateY(-37px)}100%{opacity:0;transform:translateY(19px)}}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:flash .32s ease-out}
+@keyframes flash{0%{opacity:0}25%{opacity:.85}100%{opacity:0}}
+.wipe{position:absolute;left:0;right:0;top:0;height:3px;background:#fff;box-shadow:0 0 22px 6px var(--win,#43c8ff),0 0 4px 1px #fff;opacity:0;pointer-events:none}
+.wipe.go{animation:wipe .62s var(--ease-out) forwards}
+@keyframes wipe{0%{opacity:1;transform:translateY(0)}85%{opacity:1}100%{opacity:0;transform:translateY(1144px)}}
+.rev.hid{opacity:0}
+.rev.go{animation:revIn .5s var(--ease-out) both}
+@keyframes revIn{from{opacity:0}to{opacity:1}}
+.fcard{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;pointer-events:none}
+.rin .fcard{transform:translate(0,-259.75px) scale(.71954)}
+.ol{position:absolute;border-style:solid;border-color:#fff}
+.ol1{left:39.4px;top:44.2px;width:1001.5px;height:1831px;border-width:2.6px;border-color:rgba(236,240,248,.82);border-radius:31px}
+.ol2{left:106.8px;top:474.2px;width:866.4px;border-width:2.6px;border-radius:43px}
+.pnl{position:absolute;left:141.1px;width:797.8px;opacity:.93}
+.pt{top:525.6px;height:244.1px}
+.pb{top:814.8px}
+.glitching .fcard .mh,.glitching .fcard .mb{text-shadow:-3px 0 rgba(255,40,110,.75),3px 0 rgba(40,230,255,.75)}
+.save{top:1712px}
+.dlmsg{left:0;width:1080px;top:1838px;text-align:center;font-size:30px;line-height:36px;font-weight:700;color:#fff;text-shadow:3px 4px 6px rgba(0,0,0,.6)}
+.dlfall{position:absolute;inset:0;z-index:25;background:rgba(2,8,30,.94);display:none;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:60px}
+.dlfall.open{display:flex}
+.dlfall img{max-height:1380px;max-width:820px;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);user-select:auto;-webkit-user-select:auto;-webkit-touch-callout:default;pointer-events:auto}
+.dlfall p{margin:0;font-size:40px;line-height:48px;font-weight:700;text-align:center}
+.dlfall .cta{position:relative;left:auto;top:auto}
+/* result -> QR card flip */
+.flipA,.flipB{position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none}
+.flipA{transform-origin:540px 913.5px}
+.flipB{transform-origin:540px 824px}
+.screen.hold{visibility:visible;opacity:1}
+
+/* hidden admin hotspot + panel */
+.hot{position:absolute;left:0;top:0;width:150px;height:150px;z-index:20}
+.admin{position:absolute;inset:0;z-index:30;background:rgba(1,12,45,.86);display:none;padding:110px 70px;color:var(--panel-ink);font-size:28px;line-height:1.4;overflow:auto;user-select:auto;-webkit-user-select:auto}
+.admin.open{display:block}
+.admin h2{font-size:44px;margin:0 0 6px}
+.admin .sub{color:var(--muted);margin:0 0 34px}
+.admin table{width:100%;border-collapse:collapse;margin-bottom:36px}
+.admin th{text-align:left;color:var(--muted);font-weight:400;font-size:24px;padding:0 10px 10px}
+.admin td{padding:8px 10px;border-top:1px solid rgba(255,255,255,.14)}
+.admin select,.admin input{font:inherit;font-size:26px;color:#fff;background:#072a7c;border:2px solid rgba(255,255,255,.35);border-radius:6px;padding:10px 14px;min-height:64px}
+.admin input{width:100%}
+.admin label{display:block;margin:0 0 8px;font-weight:700}
+.admin .help{color:var(--muted);font-size:22px;margin:8px 0 30px}
+.admin .row{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.admin button{font:inherit;font-weight:700;font-size:26px;min-height:72px;padding:0 30px;border-radius:6px;border:2px solid rgba(255,255,255,.4);background:#0a3fa8;color:#fff;cursor:pointer}
+.admin button.pri{background:#1f8dff;border-color:#1f8dff}
+.admin .ok{color:#7ef0b0;min-height:40px;margin-top:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (prefers-reduced-motion: reduce){
+  .screen.active,.screen.leaving,.bg{transition:none}
+  .screen.active .rise,.glitching .jit,.cta.pulse{animation:none}
+  .glitching .gt::before,.glitching .gt::after{animation:none;opacity:0}
+  .opt{transition:none}
+  .mix.glitch,.mix.glitch .mx-rgb,.mx-step i{animation:none}
+  .cta.reveal{transition:opacity .2s ease}
+  .rev.go{animation:none;clip-path:none}
+  .screen.active .rev.shown .rise{animation:fadeOnly .3s ease both}
+  .wipe.go,.flash.go{animation:none}
+}
+@keyframes fadeOnly{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{to{opacity:0}}
+
+/* ===== SCALE-UP untuk TV (k = 1.1, ~10% lebih besar) =====
+   Pakai properti "scale"/"translate" (bukan transform) supaya tidak bentrok dengan animasi yang sudah ada. */
+/* tagline + garis pojok kiri atas: membesar dari pojok kiri atas */
+[data-screen="start"] .bar,[data-screen="start"] .tag,
+[data-screen="result"] .bar,[data-screen="result"] .tag{transform-origin:0 0;scale:1.1}
+/* START: logo hero + tombol */
+[data-screen="start"] .ttl{transform-origin:597.7px 766.75px;scale:1.1}
+[data-screen="start"] img.jit{scale:1.1}
+[data-screen="start"] .cta{scale:1.1}
+.disc{left:0;width:1080px;top:1250px;text-align:center;font-weight:400;font-size:31px;line-height:38px}
+/* PERTANYAAN: teks pertanyaan, 2 kartu pilihan, tombol LANJUT */
+[data-screen="q1"] .q,[data-screen="q2"] .q,[data-screen="q3"] .q{scale:1.12}
+[data-screen="q1"] .opt,[data-screen="q2"] .opt,[data-screen="q3"] .opt{scale:1.1}
+[data-screen="q1"] .opt[data-o="0"],[data-screen="q2"] .opt[data-o="0"],[data-screen="q3"] .opt[data-o="0"]{translate:0 11px}
+[data-screen="q1"] .opt[data-o="1"],[data-screen="q2"] .opt[data-o="1"],[data-screen="q3"] .opt[data-o="1"]{translate:0 65px}
+[data-screen="q1"] .cta,[data-screen="q2"] .cta,[data-screen="q3"] .cta{scale:1.1;translate:0 8px}
+/* HASIL: frame hasil + tombol */
+[data-screen="result"] .flipA{scale:1.1}
+[data-screen="result"] .cta{scale:1.1}
+/* QR: kotak QR, caption, tombol */
+[data-screen="qr"] .flipB{scale:1.1}
+[data-screen="qr"] .cap{scale:1.1;translate:0 20px}
+[data-screen="qr"] .cta{scale:1.1}
+
+/* ===== HASIL di kiosk: kartu penuh 9:16 (revisi klien 11 Nov) ===== */
+[data-screen="result"] .flipA{scale:none}
+.flipA{transform-origin:540px 925px}
+.rframe{left:165.25px;top:300px;width:749.5px;height:1250px}
+.rin{left:215.85px;top:351.1px;width:643.5px;height:1144px}
+.rin .vcard,.rin .fcard{transform:scale(.59583)}
+
+/* ===== QR: kotak putih dirapatkan ke QR (revisi klien 11 Nov) =====
+   area putih gambar qrbox (x 48-1592, y 56-1800 dari 1651x1872) dibuat ~589x589, berpusat di QR (539.8, 826.1) */
+/* putih = QR 565px (sudah termasuk quiet zone 2 modul) + 12px tiap sisi */
+.qrbox{left:227px;top:512.7px;width:629.9px;height:632.3px}
+
+/* ===== QR: jarak proporsional (revisi klien 11 Nov) =====
+   judul (bawah huruf 262.9) -> kotak putih 820x820 (384.7-1204.7) -> caption -> tombol (atas 1578), jarak masing-masing 121.8px.
+   QR 786px di tengah kotak putih (tepi putih 17px). Tanpa scale 1.1 lagi, ukuran ditulis langsung. */
+[data-screen="qr"] .flipB{scale:none}
+.flipB{transform-origin:540px 794.7px}
+.qrbox{left:104.5px;top:358.4px;width:876.8px;height:880.2px}
+/* margin putih = proporsi versi yang disetujui klien (42.5px untuk QR 565px = 7.5%) -> QR 712.5px, margin 53.75px */
+.qr{left:183.75px;top:438.45px;width:712.5px;height:712.5px}
+.qrfail{left:183.75px;top:758.7px;width:712.5px}
+[data-screen="qr"] .cap{translate:0 -44.6px}
+
+/* ===== HASIL: glitch overlay dianimasikan (revisi klien 11 Nov) =====
+   .vov      = overlay biru+glitch: sesekali berkedip & bergeser tipis
+   .vov.g1/g2 = salinan overlay yang tampil sebagai irisan horizontal, meloncat ke samping (ritme beda) */
+.vcard img.vov{animation:vovBase 3.2s steps(1,end) infinite}
+@keyframes vovBase{0%{opacity:1;transform:none}8%{opacity:.7;transform:translateX(-8px)}10%{opacity:1;transform:translateX(5px)}12%{transform:none}
+  45%{opacity:.85;transform:translateX(6px)}47%{opacity:1;transform:none}70%{transform:translateX(-4px)}71.5%{transform:none}88%{opacity:.8}89.5%{opacity:1}}
+.vcard img.vov.g1,.vcard img.vov.g2{opacity:0;mix-blend-mode:screen;filter:brightness(1.35) saturate(1.4)}
+.vcard img.vov.g1{animation:vovG1 2.3s steps(1,end) infinite}
+.vcard img.vov.g2{animation:vovG2 3.7s steps(1,end) infinite}
+@keyframes vovG1{0%{opacity:0}18%{opacity:1;clip-path:inset(2% 0 90% 0);transform:translateX(26px)}21%{clip-path:inset(20% 0 72% 0);transform:translateX(-18px)}24%{clip-path:inset(84% 0 9% 0);transform:translateX(14px)}26%{opacity:0}
+  58%{opacity:1;clip-path:inset(1% 0 93% 0);transform:translateX(-24px)}61%{clip-path:inset(40% 0 52% 0);transform:translateX(20px)}64%{opacity:0}}
+@keyframes vovG2{0%{opacity:0}30%{opacity:1;clip-path:inset(12% 0 83% 0);transform:translateX(-30px)}32%{clip-path:inset(90% 0 4% 0);transform:translateX(22px)}34.5%{opacity:0}
+  76%{opacity:1;clip-path:inset(5% 0 86% 0);transform:translateX(18px)}78%{clip-path:inset(26% 0 66% 0);transform:translateX(-26px)}80%{clip-path:inset(70% 0 24% 0);transform:translateX(12px)}82.5%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.vcard img.vov{animation:none}.vcard img.vov.g1,.vcard img.vov.g2{display:none}}
+
+/* ===== MODE HP (html.phone): semua alur mengisi layar HP, tulisan lebih besar (20 Nov) =====
+   --dy = setengah tinggi tambahan (isi diletakkan di tengah), --vx = lebar yang terpotong di tiap sisi */
+#stage{--dy:0px;--vx:0px}
+html.phone .screen{top:var(--dy);bottom:auto;height:1920px}
+html.phone .bg{height:100%;object-fit:cover}
+html.phone #fx{height:100%}
+html.phone [data-screen] .bar,html.phone [data-screen] .tag{translate:max(0px,calc(var(--vx) - 60px)) 0}
+html.phone .disc{font-size:36px;line-height:44px}
+html.phone .hot{left:var(--vx)}
+html.phone .admin{padding-left:calc(70px + var(--vx));padding-right:calc(70px + var(--vx))}
+/* halaman hasil HP: kartu & video mengisi penuh tinggi layar, tombol SAVE tetap di bawah */
+html.phone [data-screen="mobile"]{top:0;height:100%}
+html.phone .pin{height:100%}
+html.phone .pin .vcard{height:100%}
+html.phone .pin .vcard img,html.phone .pin .vcard video,html.phone .pin .vcard canvas{height:100%}
+html.phone .pin .fcard{top:var(--dy)}
+html.phone .pin .ol1{left:calc(var(--vx) + 24px);width:calc(1080px - 2 * var(--vx) - 48px);top:calc(44px - var(--dy));height:calc(1832px + 2 * var(--dy))}
+html.phone .save{top:calc(1712px + 2 * var(--dy))}
+html.phone .dlmsg{top:calc(1838px + 2 * var(--dy))}
+
+/* MODE HP: loader & hasil di kiosk TETAP di dalam frame seperti di TV (keputusan klien 20 Nov) */
+/* MODE HP: teks pertanyaan & label pilihan lebih besar */
+html.phone .q{font-size:40px;line-height:48px;translate:0 -14px}
+html.phone .opt .lbl{font-size:40px;line-height:48px}
+
+</style>
+</head>
+<body>
+<div id="vp">
+<canvas class="amb on" id="ambA" aria-hidden="true"></canvas><canvas class="amb" id="ambB" aria-hidden="true"></canvas><canvas class="amb" id="ambM" aria-hidden="true"></canvas><div class="vscan" aria-hidden="true"></div>
+<div id="stage" aria-live="polite">
+  <img class="bg on" id="bgA" alt="" src="DATA">
+  <img class="bg" id="bgB" alt="" src="DATA">
+  <canvas id="fx" width="1080" height="1920" aria-hidden="true"></canvas>
+  <div class="scan" aria-hidden="true"></div>
+
+  <!-- START -->
+  <section class="screen" data-screen="start" data-bg="A" aria-label="Start">
+    <div class="abs bar" style="left:79.7px;top:44.9px;width:493.7px;height:7.4px"></div>
+    <p class="abs tag" style="left:95px;top:16%">Your place.<br>Your experience.<br>Your taste.</p>
+    <img class="abs jit" alt="" src="DATA" style="left:115.2px;top:624.0px;width:965.0px;height:285.5px">
+    <h1 class="abs ttl shadowed" style="left:0;top:0;width:1080px;height:1px" aria-label="Taste Experience">
+      <span class="gt" data-text="TASTE" style="left:173.4px;top:693.7px">TASTE</span>
+      <span class="gt" data-text="EXPERIENCE" style="left:273.4px;top:795.7px">EXPERIENCE</span>
+    </h1>
+    <p class="abs disc shadowed rise d2">This activity is intended for entertainment<br>purpose only. It is not intended to define or<br>accurately represent an individual’s personality.</p>
+    <button class="cta rise" data-go="q1" style="top:1022.3px"><img alt="" src="DATA"><span class="ct">START TO FIND OUT</span></button>
+  </section>
+
+  <!-- QUESTIONS (filled by JS) -->
+  <section class="screen" data-screen="q1" data-bg="B"></section>
+  <section class="screen" data-screen="q2" data-bg="B"></section>
+  <section class="screen" data-screen="q3" data-bg="B"></section>
+
+  <!-- RESULT (kiosk) -->
+  <section class="screen" data-screen="result" data-bg="A" aria-label="Result">
+    <div class="abs bar" style="left:79.7px;top:44.9px;width:493.7px;height:7.4px"></div>
+    <p class="abs tag b" style="left:95px;top:157.3px">Your place.<br>Your experience.<br>Your taste.</p>
+    <div class="flipA"><img class="abs rframe" alt="" src="DATA">
+    <div class="rin" id="rin"><div class="rev" id="krev"><div class="vcard" id="kvid"></div><div class="fcard" id="kcard"></div></div><div class="mix" id="mix" hidden role="status" aria-live="polite"></div><div class="flash" id="lflash"></div><div class="wipe" id="lwipe"></div></div></div>
+    <button class="cta reveal" id="resNext" data-go="qr" style="top:1583.5px"><img alt="" src="DATA"><span class="ct">NEXT</span></button>
+  </section>
+
+  <!-- QR -->
+  <section class="screen" data-screen="qr" data-bg="B" aria-label="Scan QR">
+    <h1 class="abs ttl shadowed" style="left:0;top:0;width:1080px;height:1px" aria-label="Taste Experience">
+      <span class="gt" data-text="TASTE" style="left:174.2px;top:75.0px">TASTE</span>
+      <span class="gt" data-text="EXPERIENCE" style="left:275.4px;top:177.0px">EXPERIENCE</span>
+    </h1>
+    <div class="flipB"><img class="abs qrbox jit" alt="" src="DATA">
+    <div class="abs qr" id="qr" role="img" aria-label="Your result QR code"></div>
+    <p class="abs qrfail" id="qrfail" hidden>QR code could not be generated. Please check the device’s internet connection.</p></div>
+    <p class="abs cap shadowed rise">Scan and show your result at<br>the Refreshment Station to redeem your<br>AI-Powered refreshments</p>
+    <button class="cta sm" data-go="start" data-reset="1" style="top:1583.5px"><img alt="" src="DATA"><span class="ct">TAKE THE XPERIENCE</span></button>
+  </section>
+
+  <!-- MOBILE RESULT (opened from QR: #fresh / #bold / #creamy) -->
+  <section class="screen" data-screen="mobile" data-bg="none" aria-label="Your result">
+    <div class="pin" id="pin"><div class="rev shown" id="prev"><div class="vcard" id="pvid"></div><div class="fcard" id="pcard"></div></div></div>
+    <h1 class="sr">Taste Experience</h1>
+    <button class="cta save rise d3" id="saveBtn"><img alt="" src="DATA"><span class="ct">SAVE RESULT</span></button>
+    <p class="abs dlmsg" id="dlmsg" role="status" aria-live="polite"></p>
+    <div class="dlfall" id="dlfall" role="dialog" aria-modal="true" aria-label="Save result image">
+      <img id="dlimg" alt="Your Taste Experience result">
+      <p>Press and hold the image above,<br>then choose Save Image.</p>
+      <button class="cta" id="dlclose"><img alt="" src="DATA"><span class="ct">CLOSE</span></button>
+    </div>
+  </section>
+
+  <div class="hot" id="hot" aria-hidden="true"></div>
+
+  <div class="admin" id="admin" role="dialog" aria-modal="true" aria-labelledby="admTitle">
+    <h2 id="admTitle">Pengaturan kiosk</h2>
+    <p class="sub">Atur hasil untuk tiap kombinasi jawaban. Perubahan tersimpan di perangkat ini.</p>
+    <table>
+      <thead><tr><th>Pertanyaan 1</th><th>Pertanyaan 2</th><th>Pertanyaan 3</th><th>Hasil</th></tr></thead>
+      <tbody id="mx"></tbody>
+    </table>
+    <label for="uploadEp">Upload API (endpoint)</label>
+    <input id="uploadEp" type="url" inputmode="url" placeholder="https://photo-ai-iims.zirolu.id/v1/iqos">
+    <label for="uploadAuth">Upload Authorization</label>
+    <input id="uploadAuth" type="text" autocomplete="off" spellcheck="false" placeholder="client_id:secret">
+    <p class="help">Kartu hasil di-upload ke API; QR berisi URL publik dari field <code>file</code> di respons JSON.</p>
+    <label for="idle">Kembali ke awal setelah tidak disentuh (detik)</label>
+    <input id="idle" type="number" min="10" max="600" step="5">
+    <p class="help">Isi 0 untuk mematikan reset otomatis.</p>
+    <label for="rot">Orientasi layar</label>
+    <select id="rot" style="width:100%"><option value="0">Normal (layar sudah portrait)</option><option value="90">Putar 90° searah jarum jam</option><option value="270">Putar 90° berlawanan jarum jam</option></select>
+    <p class="help">Pakai ini kalau TV dipasang berdiri tapi tampilannya masih landscape.</p>
+    <div class="row">
+      <button class="pri" id="admSave">Simpan</button>
+      <button id="admReset">Kembalikan matrix awal</button>
+      <button id="admFs">Layar penuh</button>
+      <button id="admClose">Tutup</button>
+    </div>
+    <p class="ok" id="admMsg" role="status"></p>
+  </div>
+</div>
+</div>
+
+<script src="lib/qrcode.js"></script>
+<script>if(typeof window.qrcode!=="function"){var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";document.head.appendChild(s)}</script>
+<script>
+(function(){
+"use strict";
+var IMG={
+  over:{fresh:"B64",bold:"B64",creamy:"B64"},
+  cards:{q1:["B64","B64"],q2:["B64","B64"],q3:["B64","B64"]},
+  btn:"B64",
+  poster:{fresh:"B64",bold:"B64",creamy:"B64"},
+  photos:{q1:["B64","B64"],q2:["B64","B64"],q3:["B64","B64"]},
+  ptitle:{fresh:"B64",bold:"B64",creamy:"B64"},
+  pbody:{fresh:"B64",bold:"B64",creamy:"B64"},
+  mobile:{fresh:"B64",bold:"B64",creamy:"B64"}
+};
+var Q=[
+  {id:"q1",text:"If you could escape for a while,<br>where would you go?",opts:["A LIVELY &amp; EXCITING CITY","A QUIET &amp; PEACEFUL ROOM"],short:["Lively & exciting city","Quiet & peaceful room"]},
+  {id:"q2",text:"What kind of experience<br>do you prefer?",opts:["GOING ON ADVENTURES &amp;<br>EXPLORING NEW PLACES","TAKING A BREAK TO<br>RELAX &amp; RECHARGE"],short:["Adventures & exploring","Relax & recharge"]},
+  {id:"q3",text:"If you could pick one moment,<br>which would it be?",opts:["A COOL &amp; REFRESHING<br>MORNING","A WARM &amp; RELAXING<br>SUNSET"],short:["Cool refreshing morning","Warm relaxing sunset"]}
+];
+var RESULTS={
+  fresh:{name:"FRESH",
+    head:"You seek for<br>something FRESH!",
+    body:["Bright, easygoing and effortlessly cool. You love keeping things light yet exciting.","We’ve matched your profile with a refreshing sip to complement your vibe."],
+    mbody:["Bright, easygoing and effortlessly<br>cool. You love keeping things light<br>yet exciting.","We’ve matched your profile with a<br>refreshing sip to complement your<br>vibe."]},
+  bold:{name:"BOLD",
+    head:"You dare to taste<br>the BOLD!",
+    body:["Expressive and full of energy, your vibe calls for something just as dynamic.","Your match? A bold flavor that’s as vibrant as you are."],
+    mbody:["Expressive and full of energy, your<br>vibe calls for something just as<br>dynamic.","Your match? A bold flavor that’s as<br>vibrant as you are."]},
+  creamy:{name:"CREAMY",
+    head:"You’re all about<br>SMOOTH COMFORT!",
+    body:["Laid-back, charming, all about enjoying the moment. You know how to take it easy.","Time to enjoy a creamy delight that’s crafted for your vibe"],
+    mbody:["Laid-back, charming, all about<br>enjoying the moment. You know how<br>to take it easy.","Time to enjoy a creamy delight<br>that’s crafted for your vibe"]}
+};
+// answer index per question: 0 = top card, 1 = bottom card
+var DEFAULT_MATRIX={"000":"bold","001":"bold","010":"fresh","011":"bold","100":"fresh","101":"creamy","110":"fresh","111":"creamy"};
+var KEY="te_kiosk_v1";
+function loadCfg(){var c={};try{c=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){c={}}
+  var m={};for(var k in DEFAULT_MATRIX){m[k]=(c.matrix&&RESULTS[c.matrix[k]])?c.matrix[k]:DEFAULT_MATRIX[k]}
+  return{matrix:m,uploadEndpoint:typeof c.uploadEndpoint==="string"?c.uploadEndpoint:"",uploadAuth:typeof c.uploadAuth==="string"?c.uploadAuth:"",idle:typeof c.idle==="number"?c.idle:45,rotate:(c.rotate===90||c.rotate===270)?c.rotate:0}}
+function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg));return true}catch(e){return false}}
+var cfg=loadCfg();
+
+var $=function(s,r){return(r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var stage=$("#stage"),vp=$("#vp");
+var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- scale stage to fit ---------- */
+var scale=1;
+/* rotasi: ?rotate=90 / ?rotate=270 di URL, atau dari panel admin */
+function rotation(){var m=/[?&]rotate=(90|270|0)\b/.exec(location.search);return m?+m[1]:(cfg.rotate||0)}
+/* RES = kerapatan render canvas: 2 di layar 4K (2160x3840), 1 di Full HD */
+var RES=1;
+function fit(){var r=rotation();vp.classList.toggle("rot90",r===90);vp.classList.toggle("rot270",r===270);
+  var w=vp.clientWidth,h=vp.clientHeight;
+  /* MODE HP: layar portrait selebar HP -> isi penuh layar, tulisan lebih besar. TV/laptop/tablet tidak berubah. */
+  var ph=h>w,vis=1080,sh=1920;
+  if(ph){scale=w/1080;vis=1080;sh=Math.max(1920,h/scale)}else scale=Math.min(w/1080,h/1920);
+  document.documentElement.classList.toggle("phone",ph);
+  stage.style.height=sh+"px";stage.style.setProperty("--dy",((sh-1920)/2)+"px");stage.style.setProperty("--vx",((1080-vis)/2)+"px");
+  var res=(scale*(window.devicePixelRatio||1))>1.25?2:1;if(res!==RES){RES=res;if(window.__fxRes)window.__fxRes()}
+  stage.style.transform="translate("+(-540*scale)+"px,"+(-sh/2*scale)+"px) scale("+scale+")";drawAmbients();}
+/* Fill whatever the 9:16 stage leaves uncovered (other screen ratios, browser bars) with the
+   same background, mirrored at the stage edges so it continues seamlessly instead of blue bars. */
+var AMB={A:{src:null},B:{src:null},M:{src:null,dim:.55}};
+function drawAmb(id,img,dim){
+  var cv=document.getElementById(id);if(!cv||!img||!img.complete||!img.naturalWidth)return;
+  var W=vp.clientWidth,H=vp.clientHeight,sw=1080*scale,sh=1920*scale,L=W/2-sw/2,T=H/2-sh/2;
+  if(L<1&&T<1){cv.width=1;cv.height=1;return}
+  var dpr=window.devicePixelRatio||1;cv.width=Math.ceil(W*dpr);cv.height=Math.ceil(H*dpr);var g=cv.getContext("2d");g.scale(dpr,dpr);
+  var nc=Math.ceil(L/sw),nr=Math.ceil(T/sh);
+  for(var c=-nc;c<=nc;c++)for(var r=-nr;r<=nr;r++){
+    var fx=Math.abs(c)%2===1,fy=Math.abs(r)%2===1;
+    g.save();g.translate(L+c*sw+(fx?sw:0),T+r*sh+(fy?sh:0));g.scale(fx?-1:1,fy?-1:1);g.drawImage(img,0,0,sw,sh);g.restore();
+  }
+  if(dim){g.fillStyle="rgba(2,8,30,"+dim+")";g.fillRect(0,0,W,H)}
+  // ease the eye back to the stage: darken gently toward the outer edges
+  var gr;if(L>=1){gr=g.createLinearGradient(0,0,L,0);gr.addColorStop(0,"rgba(2,8,30,.5)");gr.addColorStop(1,"rgba(2,8,30,0)");g.fillStyle=gr;g.fillRect(0,0,L,H);
+    gr=g.createLinearGradient(W,0,W-L,0);gr.addColorStop(0,"rgba(2,8,30,.5)");gr.addColorStop(1,"rgba(2,8,30,0)");g.fillStyle=gr;g.fillRect(W-L,0,L,H)}
+  if(T>=1){gr=g.createLinearGradient(0,0,0,T);gr.addColorStop(0,"rgba(2,8,30,.5)");gr.addColorStop(1,"rgba(2,8,30,0)");g.fillStyle=gr;g.fillRect(0,0,W,T);
+    gr=g.createLinearGradient(0,H,0,H-T);gr.addColorStop(0,"rgba(2,8,30,.5)");gr.addColorStop(1,"rgba(2,8,30,0)");g.fillStyle=gr;g.fillRect(0,H-T,W,T)}
+}
+/* ?fill=1 = isi sisi layar dengan lanjutan background (perilaku lama). Default: hitam polos, hanya frame 9:16 */
+var FILL=/[?&]fill=1(?![0-9])/.test(location.search);
+function drawAmbients(){if(FILL){drawAmb("ambA",document.getElementById("bgA"));drawAmb("ambB",document.getElementById("bgB"))}if(AMB.M.img)drawAmb("ambM",AMB.M.img,AMB.M.dim)}
+function setAmbient(which){["A","B","M"].forEach(function(k){var c=document.getElementById("amb"+k);if(c)c.classList.toggle("on",k===which)})}
+function setPhoneAmbient(key){var im=new Image();im.onload=function(){AMB.M.img=im;drawAmb("ambM",im,AMB.M.dim)};im.src="data:image/webp;base64,"+IMG.poster[key]}
+["bgA","bgB"].forEach(function(id){var im=document.getElementById(id);if(!im.complete)im.addEventListener("load",drawAmbients)});
+window.addEventListener("resize",fit);fit();
+
+/* ---------- build question screens ---------- */
+var TOPS=[446.4,959.28];
+Q.forEach(function(q,qi){
+  var s=$('[data-screen="'+q.id+'"]');s.setAttribute("aria-label","Question "+(qi+1));
+  var h='<h1 class="abs ttl shadowed" style="left:0;top:0;width:1080px;height:1px" aria-label="Taste Experience">'+
+    '<span class="gt" data-text="TASTE" style="left:174.2px;top:75.0px">TASTE</span>'+
+    '<span class="gt" data-text="EXPERIENCE" style="left:275.4px;top:177.0px">EXPERIENCE</span></h1>'+
+    '<h2 class="abs q shadowed rise" id="'+q.id+'-label">'+q.text+'</h2>'+
+    '<div role="radiogroup" aria-labelledby="'+q.id+'-label">';
+  q.opts.forEach(function(o,oi){
+    h+='<button class="opt rise d'+(oi+1)+'" role="radio" aria-checked="false" data-q="'+qi+'" data-o="'+oi+'" style="top:'+TOPS[oi]+'px">'+
+       '<img class="jit" alt="" src="data:image/webp;base64,'+IMG.cards[q.id][oi]+'"><span class="lbl"><span>'+o+'</span></span></button>';
+  });
+  h+='</div><button class="cta" data-next="'+qi+'" disabled style="top:1583.5px"><img alt="" src="data:image/webp;base64,'+IMG.btn+'"><span class="ct">NEXT</span></button>';
+  s.innerHTML=h;
+});
+
+/* ---------- state + navigation ---------- */
+var answers=[null,null,null],current=null,resultKey=null;
+var bgA=$("#bgA"),bgB=$("#bgB");
+var flipping=false;
+function flipToQR(){
+  prepareQR();
+  flipping=true;
+  var from=current,to=$('[data-screen="qr"]'),A=from.querySelector(".flipA"),B=to.querySelector(".flipB");
+  var restA=[].slice.call(from.children).filter(function(e){return e!==A}),
+      restB=[].slice.call(to.children).filter(function(e){return e!==B});
+  var P="perspective(1900px) ",anims=[];
+  glitch(260);
+  from.classList.add("hold");to.classList.add("active");current=to;
+  // front: the result card turns edge-on
+  anims.push(A.animate([{transform:P+"rotateY(0deg)",filter:"brightness(1)"},{transform:P+"rotateY(90deg) scale(.95)",filter:"brightness(.55)"}],{duration:380,easing:"cubic-bezier(.55,0,.75,.45)",fill:"forwards"}));
+  restA.forEach(function(e){anims.push(e.animate([{opacity:1},{opacity:0}],{duration:220,easing:"ease-in",fill:"forwards"}))});
+  // back: the white QR box turns in from the other side
+  B.animate([{transform:P+"rotateY(-90deg) scale(1.05)",filter:"brightness(.55)"},{transform:P+"rotateY(0deg) scale(1)",filter:"brightness(1)"}],{duration:560,delay:380,easing:"cubic-bezier(.2,.85,.25,1)",fill:"backwards"});
+  restB.forEach(function(e){e.animate([{opacity:0},{opacity:1}],{duration:360,delay:620,easing:"ease-out",fill:"backwards"})});
+  setTimeout(function(){bgA.classList.remove("on");bgB.classList.add("on");setAmbient("B");fxBg=bgB;glitch(200)},300);
+  setTimeout(function(){from.classList.remove("active","hold");anims.forEach(function(a){a.cancel()});Fluid.stop();flipping=false;
+    var f=to.querySelector(".cta:not([disabled])");if(f&&usingKeys){try{f.focus({preventScroll:true})}catch(e){}}},980);
+  bump();
+}
+function go(name){
+  if(flipping)return;
+  var next=$('[data-screen="'+name+'"]');if(!next||current===next)return;
+  if(current&&current.getAttribute("data-screen")==="result"&&name==="qr"&&!reduce&&typeof next.animate==="function"){flipToQR();return}
+  glitch(reduce?0:340);
+  if(current){var prev=current;prev.classList.remove("active");prev.classList.add("leaving");setTimeout(function(){prev.classList.remove("leaving")},200)}
+  next.classList.add("active");current=next;
+  var b=next.getAttribute("data-bg");bgA.classList.toggle("on",b==="A");bgB.classList.toggle("on",b==="B");setAmbient(b==="A"?"A":(b==="B"?"B":"M"));
+  fxBg=b==="A"?bgA:(b==="B"?bgB:null);
+  if(name==="result"||name==="mobile")Fluid.start();else Fluid.stop();
+  if(name!=="result"){ldrClear();var mx=$("#mix");if(mx){mx.hidden=true;mx.innerHTML=""}}
+  if(name==="start")startAttract();
+  if(name==="qr")prepareQR();
+  var f=next.querySelector(".opt.sel")||next.querySelector(".cta:not([disabled])");
+  if(f&&usingKeys)setTimeout(function(){try{f.focus({preventScroll:true})}catch(e){}},60);
+  bump();
+}
+function reset(){answers=[null,null,null];resultKey=null;
+  if(qrUploadCtrl){try{qrUploadCtrl.abort()}catch(e){}qrUploadCtrl=null}
+  var qb=$("#qr");if(qb)qb.innerHTML="";var qf=$("#qrfail");if(qf){qf.hidden=true;qf.textContent=QR_FAIL_MSG}
+  $(".opt").forEach(function(o){o.classList.remove("sel","dim");o.setAttribute("aria-checked","false")});
+  $("[data-next]").forEach(function(b){b.disabled=true});}
+function choose(qi,oi){
+  answers[qi]=oi;
+  $$('.opt[data-q="'+qi+'"]').forEach(function(o){var on=+o.getAttribute("data-o")===oi;
+    o.classList.toggle("sel",on);o.classList.toggle("dim",!on);o.setAttribute("aria-checked",on?"true":"false")});
+  var nb=$('[data-next="'+qi+'"]');var was=nb.disabled;nb.disabled=false;
+  if(was&&!reduce){nb.classList.remove("pulse");void nb.offsetWidth;nb.classList.add("pulse")}
+  glitch(reduce?0:160);
+}
+function computeResult(){return cfg.matrix[answers.join("")]||"fresh"}
+function showResult(){
+  resultKey=computeResult();var r=RESULTS[resultKey];
+  buildCard($("#kcard"),resultKey);
+  Fluid.mount($("#rin"));Fluid.setResult(resultKey);
+  go("result");runLoader(resultKey);
+}
+stage.addEventListener("pointerdown",function(e){usingKeys=false;bump()},true);
+stage.addEventListener("click",function(e){
+  var o=e.target.closest(".opt");if(o){choose(+o.getAttribute("data-q"),+o.getAttribute("data-o"));return}
+  var n=e.target.closest("[data-next]");if(n&&!n.disabled){var qi=+n.getAttribute("data-next");
+    if(qi<2)go("q"+(qi+2));else showResult();return}
+  var g=e.target.closest("[data-go]");if(g){if(g.getAttribute("data-reset"))reset();go(g.getAttribute("data-go"))}
+});
+var usingKeys=false;
+document.addEventListener("keydown",function(e){
+  bump();if(e.key!=="Shift"&&e.key!=="Control"&&e.key!=="Alt"&&e.key!=="Meta")usingKeys=true;
+  if(admin.classList.contains("open")){if(e.key==="Escape")closeAdmin();return}
+  if((e.key==="m"||e.key==="M")&&(e.ctrlKey||e.altKey)){openAdmin();e.preventDefault();return}
+  if(!current||mode!=="kiosk")return;
+  var id=current.getAttribute("data-screen");var qi=["q1","q2","q3"].indexOf(id);
+  if(qi>=0&&(e.key==="ArrowUp"||e.key==="ArrowDown"||e.key==="ArrowLeft"||e.key==="ArrowRight")){
+    var oi=answers[qi]===null?(e.key==="ArrowUp"||e.key==="ArrowLeft"?0:0):(answers[qi]===0?1:0);
+    if(answers[qi]===null&&(e.key==="ArrowDown"||e.key==="ArrowRight"))oi=1;
+    choose(qi,oi);var el=$('.opt[data-q="'+qi+'"][data-o="'+oi+'"]');try{el.focus({preventScroll:true})}catch(_){}e.preventDefault();return}
+  if(e.key==="Enter"||e.key===" "){
+    var a=document.activeElement;if(a&&stage.contains(a)&&(a.classList.contains("opt"))&&qi>=0&&answers[qi]!==null){
+      e.preventDefault();var nb=$('[data-next="'+qi+'"]');if(!nb.disabled)nb.click();return}
+    if(!a||!stage.contains(a)||a===document.body){var p=current.querySelector(".cta:not([disabled])");if(p){e.preventDefault();p.click()}}
+  }
+});
+
+/* ---------- idle reset ---------- */
+var lastAct=Date.now();function bump(){lastAct=Date.now()}
+setInterval(function(){
+  if(mode!=="kiosk"||!cfg.idle||admin.classList.contains("open"))return;
+  if(current&&current.getAttribute("data-screen")!=="start"&&Date.now()-lastAct>cfg.idle*1000){reset();go("start")}
+},1000);
+
+/* ---------- QR (upload foto → URL publik di QR, NRG-Lite API) ---------- */
+var DEFAULT_UPLOAD_ENDPOINT="https://photo-ai-iims.zirolu.id/v1/iqos";
+var DEFAULT_UPLOAD_AUTH="de2e0cc3-65da-48a4-8473-484f29386d61:xZC8Zo4DAWR5Yh6Lrq4QE3aaRYJl9lss";
+var QR_FAIL_MSG="QR code could not be generated. Please check the device’s internet connection.";
+var UPLOAD_CACHE_PREFIX="te_qr_photo_url_";
+var QR_SESSION_COUNTER="te_qr_session_counter";
+var QR_SESSION_CURRENT="te_qr_session_current";
+var qrUploadCtrl=null,qrUploadGen=0;
+function uploadSettings(){return{
+  endpoint:(cfg.uploadEndpoint||"").trim()||DEFAULT_UPLOAD_ENDPOINT,
+  auth:(cfg.uploadAuth||"").trim()||DEFAULT_UPLOAD_AUTH
+}}
+function qrSessionNum(){var n=0;try{var ex=sessionStorage.getItem(QR_SESSION_CURRENT);if(ex){n=parseInt(ex,10);if(n>0)return n}}catch(e){}
+  try{var raw=localStorage.getItem(QR_SESSION_COUNTER);var cur=raw?parseInt(raw,10):0;n=(cur>0?cur:0)+1;localStorage.setItem(QR_SESSION_COUNTER,String(n))}catch(e){n=Date.now()}
+  try{sessionStorage.setItem(QR_SESSION_CURRENT,String(n))}catch(e){}return n}
+function drawQRTarget(target){
+  var box=$("#qr"),fail=$("#qrfail");box.innerHTML="";
+  if(typeof window.qrcode!=="function"){fail.textContent=QR_FAIL_MSG;fail.hidden=false;return}
+  try{var q=qrcode(0,"M");q.addData(target);q.make();
+    var n=q.getModuleCount(),d="";for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(q.isDark(r,c))d+="M"+c+" "+r+"h1v1h-1z";
+    box.innerHTML='<svg viewBox="0 0 '+n+' '+n+'" shape-rendering="crispEdges" aria-hidden="true"><path fill="#000" d="'+d+'"/></svg>';
+    fail.hidden=true;
+  }catch(err){fail.textContent=QR_FAIL_MSG;fail.hidden=false}
+}
+function uploadResultBlob(blob,signal){
+  var u=uploadSettings(),session=qrSessionNum();
+  var body=new FormData();
+  body.append("name","Taste Experience "+session);
+  body.append("phone","1");
+  body.append("file",blob,"taste-experience-"+(resultKey||"result")+"-"+session+".jpg");
+  return fetch(u.endpoint,{method:"POST",body:body,headers:{Authorization:u.auth,Accept:"application/json"},signal:signal})
+    .then(function(res){if(!res.ok)throw new Error("Upload gagal (HTTP "+res.status+")");return res.json()})
+    .then(function(json){if(!json||typeof json.file!=="string")throw new Error("Respon upload tidak valid");return json.file});
+}
+function prepareQR(){
+  if(!resultKey||mode!=="kiosk")return;
+  var fail=$("#qrfail"),cacheKey=UPLOAD_CACHE_PREFIX+resultKey,gen=++qrUploadGen;
+  if(qrUploadCtrl){try{qrUploadCtrl.abort()}catch(e){}qrUploadCtrl=null}
+  if(typeof window.qrcode!=="function"){fail.textContent=QR_FAIL_MSG;fail.hidden=false;return}
+  try{var cached=sessionStorage.getItem(cacheKey);if(cached){drawQRTarget(cached);return}}catch(e){}
+  if(typeof navigator!=="undefined"&&navigator.onLine===false){fail.textContent=QR_FAIL_MSG;fail.hidden=false;return}
+  fail.textContent="Preparing your QR code…";fail.hidden=false;
+  qrUploadCtrl=new AbortController();
+  composeResult(resultKey).then(function(blob){
+    if(gen!==qrUploadGen)return;return uploadResultBlob(blob,qrUploadCtrl.signal)
+  }).then(function(url){
+    if(!url||gen!==qrUploadGen)return;
+    try{sessionStorage.setItem(cacheKey,url)}catch(e){}
+    drawQRTarget(url);
+  }).catch(function(err){
+    if(gen!==qrUploadGen||(err&&err.name==="AbortError"))return;
+    fail.textContent=QR_FAIL_MSG;fail.hidden=false;
+  }).then(function(){if(gen===qrUploadGen)qrUploadCtrl=null});
+}
+function renderQR(){prepareQR()}
+
+/* ---------- glitch FX (canvas) ---------- */
+var cv=$("#fx"),cx=cv.getContext("2d"),fxBg=bgA,burstEnd=0,bars=[],tint={};
+function fxRes(){cv.width=1080*RES;cv.height=1920*RES;cx.setTransform(RES,0,0,RES,0,0)}
+window.__fxRes=fxRes;fxRes();
+function makeTint(img,key){
+  if(!img.complete||!img.naturalWidth)return;
+  var w=540,h=960,c=document.createElement("canvas");c.width=w;c.height=h;var g=c.getContext("2d");g.drawImage(img,0,0,w,h);
+  var src;try{src=g.getImageData(0,0,w,h)}catch(e){return}
+  var red=g.createImageData(w,h),cyan=g.createImageData(w,h),s=src.data,r=red.data,cy=cyan.data;
+  for(var i=0;i<s.length;i+=4){r[i]=s[i]*1.4;r[i+3]=255;cy[i+1]=s[i+1];cy[i+2]=s[i+2];cy[i+3]=255}
+  var rc=document.createElement("canvas");rc.width=w;rc.height=h;rc.getContext("2d").putImageData(red,0,0);
+  var cc=document.createElement("canvas");cc.width=w;cc.height=h;cc.getContext("2d").putImageData(cyan,0,0);
+  tint[key]={red:rc,cyan:cc};
+}
+function glitch(ms){if(!ms)return;Fluid.kick(ms);var end=performance.now()+ms;if(end>burstEnd)burstEnd=end;
+  stage.classList.add("glitching");clearTimeout(glitch.t);glitch.t=setTimeout(function(){stage.classList.remove("glitching")},ms);}
+var COLORS=["rgba(140,200,255,.55)","rgba(255,255,255,.5)","rgba(2,18,70,.6)","rgba(70,150,255,.5)","rgba(255,80,140,.35)","rgba(60,230,255,.45)"];
+function spawnBar(){var edge=Math.random();var y=edge<.45?Math.random()*480:(edge<.9?1380+Math.random()*540:Math.random()*1920);
+  bars.push({x:Math.random()<.5?Math.random()*300:500+Math.random()*580,y:y,w:40+Math.random()*420,h:1+Math.random()*(Math.random()<.2?18:5),c:COLORS[(Math.random()*COLORS.length)|0],life:3+(Math.random()*10|0)});}
+var lastF=0,nextAuto=performance.now()+3000;
+function frame(t){
+  requestAnimationFrame(frame);
+  if(reduce||document.hidden)return;
+  if(t-lastF<66)return;lastF=t;
+  cx.clearRect(0,0,1080,1920);
+  if(mode==="kiosk"&&t>nextAuto){var onStart=current&&current.getAttribute("data-screen")==="start";glitch(180+Math.random()*200);nextAuto=t+(onStart?1800:3200)+Math.random()*(onStart?2600:4200)}
+  if(Math.random()<.55)spawnBar();if(Math.random()<.25)spawnBar();
+  for(var i=bars.length-1;i>=0;i--){var b=bars[i];cx.fillStyle=b.c;cx.fillRect(b.x+(Math.random()<.3?(Math.random()-.5)*30:0),b.y,b.w,b.h);if(--b.life<=0)bars.splice(i,1)}
+  if(t<burstEnd&&fxBg&&fxBg.naturalWidth){
+    var k=fxBg.naturalWidth/1080,n=5+(Math.random()*6|0);
+    for(var j=0;j<n;j++){var y=Math.random()*1920,h=6+Math.random()*(Math.random()<.3?160:50),dx=(Math.random()-.5)*(Math.random()<.3?160:60);
+      cx.drawImage(fxBg,0,y*k,fxBg.naturalWidth,h*k,dx,y,1080,h)}
+    var key=fxBg.id;if(!tint[key])makeTint(fxBg,key);var tt=tint[key];
+    if(tt){var by=Math.random()*1400,bh=200+Math.random()*500;cx.save();cx.globalCompositeOperation="screen";cx.globalAlpha=.32;
+      cx.drawImage(tt.red,0,by/2,540,bh/2,-10,by,1080,bh);cx.drawImage(tt.cyan,0,by/2,540,bh/2,10,by,1080,bh);cx.restore()}
+  }
+}
+requestAnimationFrame(frame);
+function startAttract(){nextAuto=performance.now()+900}
+
+/* ---------- admin (long-press top-left 2s, or Ctrl/Alt+M) ---------- */
+var admin=$("#admin"),hot=$("#hot"),pressT=null;
+hot.addEventListener("pointerdown",function(){clearTimeout(pressT);pressT=setTimeout(openAdmin,2000)});
+["pointerup","pointerleave","pointercancel"].forEach(function(ev){hot.addEventListener(ev,function(){clearTimeout(pressT)})});
+var LBL=[["Kota","Kamar"],["Petualang","Santai"],["Pagi","Senja"]];
+function openAdmin(){
+  var rows="";Object.keys(DEFAULT_MATRIX).forEach(function(k){
+    rows+="<tr><td>"+LBL[0][+k[0]]+"</td><td>"+LBL[1][+k[1]]+"</td><td>"+LBL[2][+k[2]]+"</td><td><select data-k='"+k+"' aria-label='Hasil untuk "+LBL[0][+k[0]]+", "+LBL[1][+k[1]]+", "+LBL[2][+k[2]]+"'>"+
+      ["fresh","bold","creamy"].map(function(r){return"<option value='"+r+"'"+(cfg.matrix[k]===r?" selected":"")+">"+RESULTS[r].name+"</option>"}).join("")+"</select></td></tr>"});
+  $("#mx").innerHTML=rows;$("#uploadEp").value=cfg.uploadEndpoint||"";$("#uploadAuth").value=cfg.uploadAuth||"";$("#idle").value=cfg.idle;$("#rot").value=String(cfg.rotate||0);$("#admMsg").textContent="";
+  admin.classList.add("open");try{$("#admClose").focus()}catch(e){}
+}
+function closeAdmin(){admin.classList.remove("open");bump()}
+$("#admClose").addEventListener("click",closeAdmin);
+$("#admSave").addEventListener("click",function(){
+  $$("#mx select").forEach(function(s){cfg.matrix[s.getAttribute("data-k")]=s.value});
+  cfg.uploadEndpoint=$("#uploadEp").value.trim();cfg.uploadAuth=$("#uploadAuth").value.trim();var iv=parseInt($("#idle").value,10);cfg.idle=isNaN(iv)?45:Math.max(0,Math.min(600,iv));
+  cfg.rotate=+$("#rot").value||0;fit();
+  $("#admMsg").textContent=saveCfg()?"Tersimpan.":"Tersimpan untuk sesi ini saja (penyimpanan perangkat tidak tersedia).";
+  if(resultKey)prepareQR();
+});
+$("#admReset").addEventListener("click",function(){cfg.matrix=JSON.parse(JSON.stringify(DEFAULT_MATRIX));openAdmin();$("#admMsg").textContent="Matrix kembali ke pengaturan awal. Tekan Simpan untuk menyimpan."});
+$("#admFs").addEventListener("click",function(){var el=document.documentElement;
+  if(document.fullscreenElement){document.exitFullscreen&&document.exitFullscreen()}else if(el.requestFullscreen){el.requestFullscreen().catch(function(){})}else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen()}});
+
+
+/* ---------- result card (DOM layer over the fluid canvas) ---------- */
+var OL2H={fresh:1155.6,bold:1175.3,creamy:1195};
+var PBH={fresh:763.7,bold:778.3,creamy:793};
+// card is 1080x1920; the kiosk frame shows card rows 361 → 1744.5 scaled by .71954
+var KIOSK_CROP=[0,1-1744.5/1920,1,1383.5/1920];
+function buildCard(el,key){
+  var r=RESULTS[key];
+  el.innerHTML='<div class="ol ol1 rise" aria-hidden="true"></div>'+
+    '<div class="ol ol2 rise" aria-hidden="true" style="height:'+OL2H[key]+'px"></div>'+
+    '<img class="pnl pt jit rise d1" alt="" src="data:image/webp;base64,'+IMG.ptitle[key]+'">'+
+    '<img class="pnl pb jit rise d2" alt="" style="height:'+PBH[key]+'px" src="data:image/webp;base64,'+IMG.pbody[key]+'">'+
+    '<p class="sr">Taste Experience</p>'+
+    '<h2 class="abs mh rise d2">'+r.head+'</h2><div class="abs mdiv rise d3"></div>'+
+    '<div class="abs mb rise d3">'+r.mbody.map(function(p){return"<p>"+p+"</p>"}).join("")+'</div>';
+}
+
+/* ---------- result background: looping video + runtime glitch ----------
+   One video per result. To swap in final footage, replace the three entries of VIDEO
+   (base64 MP4, H.264, portrait 9:16); colours and glitch need no other change. */
+var VIDEO={fresh:"B64",bold:"B64",creamy:"B64"};
+var ACC={fresh:["#ff4f5e","#3fe0a0"],bold:["#f8e21c","#3cc84a"],creamy:["#ff2f6e","#ff9cc8"]};
+var Fluid=(function(){
+  var urls={},layer=null,video=null,poster=null,ov=null,ovs=[],ca=null,cb=null,ga=null,gb=null,tc=null,tg=null,
+      key=null,running=false,raf=0,lastT=0,gUntil=0,nextG=0,prevTime=0,W=540,H=960;
+  function url(k){
+    if(urls[k]!==undefined)return urls[k];
+    try{var bin=atob(VIDEO[k]),n=bin.length,u=new Uint8Array(n);for(var i=0;i<n;i++)u[i]=bin.charCodeAt(i);
+      urls[k]=URL.createObjectURL(new Blob([u],{type:"video/mp4"}))}catch(e){urls[k]=null}
+    return urls[k];
+  }
+  function build(el){
+    W=RES>1?1080:540;H=RES>1?1920:960;
+    layer=el;layer.innerHTML="";
+    poster=document.createElement("img");poster.alt="";
+    video=document.createElement("video");video.muted=true;video.loop=true;video.playsInline=true;video.autoplay=true;
+    video.setAttribute("muted","");video.setAttribute("playsinline","");video.setAttribute("aria-hidden","true");video.preload="auto";
+    ca=document.createElement("canvas");cb=document.createElement("canvas");cb.className="gb";
+    [ca,cb].forEach(function(c){c.width=W;c.height=H;c.setAttribute("aria-hidden","true")});
+    ga=ca.getContext("2d");gb=cb.getContext("2d");
+    tc=document.createElement("canvas");tc.width=W;tc.height=H;tg=tc.getContext("2d");
+    ov=document.createElement("img");ov.alt="";ov.className="vov";ovs=[ov];
+    ["g1","g2"].forEach(function(c){var x=document.createElement("img");x.alt="";x.className="vov "+c;x.setAttribute("aria-hidden","true");ovs.push(x)});
+    layer.appendChild(poster);layer.appendChild(video);ovs.forEach(function(x){layer.appendChild(x)});layer.appendChild(ca);layer.appendChild(cb);
+    video.addEventListener("playing",function(){video.classList.add("on")});
+    video.addEventListener("timeupdate",function(){var t=video.currentTime;if(t+1<prevTime)kick(240);prevTime=t});
+  }
+  function clear(){if(ga){ga.clearRect(0,0,W,H);gb.clearRect(0,0,W,H)}}
+  function tint(color,dx,by,bh,sy,vw){
+    tg.globalCompositeOperation="source-over";tg.drawImage(video,0,by*sy,vw,bh*sy,0,0,W,bh);
+    tg.globalCompositeOperation="multiply";tg.fillStyle=color;tg.fillRect(0,0,W,bh);tg.globalCompositeOperation="source-over";
+    gb.globalAlpha=.62;gb.drawImage(tc,0,0,W,bh,dx,by,W,bh);gb.globalAlpha=1;
+  }
+  function loop(now){
+    raf=requestAnimationFrame(loop);
+    if(now-lastT<33)return;lastT=now;
+    if(!video||video.readyState<2||!video.videoWidth)return;
+    if(!reduce&&now>nextG){gUntil=now+120+Math.random()*200;nextG=now+2400+Math.random()*3600}
+    var burst=!reduce&&now<gUntil,tear=!reduce&&!burst&&Math.random()<.07;
+    clear();if(!burst&&!tear)return;
+    var vw=video.videoWidth,sy=video.videoHeight/H,n=burst?4+(Math.random()*6|0):1;
+    for(var i=0;i<n;i++){
+      var y=Math.random()*H,h=burst?4+Math.random()*(Math.random()<.3?110:36):2+Math.random()*5,dx=(Math.random()-.5)*(burst?96:44);
+      ga.drawImage(video,0,y*sy,vw,h*sy,dx,y,W,h);
+    }
+    if(burst){
+      var by=Math.random()*H*.75,bh=H*(.15+Math.random()*.35);
+      tint("#ff0040",-8,by,bh,sy,vw);tint("#00e5ff",8,by,bh,sy,vw);
+      var ac=ACC[key]||ACC.fresh;ga.globalAlpha=.6;
+      for(var j=0;j<3;j++){ga.fillStyle=ac[j%2];ga.fillRect(Math.random()*W,Math.random()*H,16+Math.random()*120,2+Math.random()*9)}
+      ga.globalAlpha=1;
+    }
+  }
+  function kick(ms){gUntil=Math.max(gUntil,performance.now()+Math.min(ms,320))}
+  return{
+    mount:function(host){var el=host.querySelector(".vcard");if(el&&el!==layer)build(el)},
+    setResult:function(k){if(!layer)return;key=k;
+      poster.src="data:image/webp;base64,"+IMG.poster[k];ovs.forEach(function(x){x.src="data:image/webp;base64,"+IMG.over[k]});
+      var u=url(k);video.classList.remove("on");prevTime=0;
+      if(u){video.src=u;video.load();if(running){var p=video.play();if(p&&p.catch)p.catch(function(){})}}},
+    start:function(){if(!video||running)return;running=true;var p=video.play();if(p&&p.catch)p.catch(function(){});
+      if(!reduce){lastT=0;raf=requestAnimationFrame(loop)}},
+    stop:function(){if(!running)return;running=false;cancelAnimationFrame(raf);clear();if(video)video.pause()},
+    kick:kick,
+    info:function(){return{key:key,running:running,ready:video?video.readyState:-1,playing:video?!video.paused:false}}
+  };
+})();
+
+/* ---------- analysing loader ("AI is matching your taste") ---------- */
+var LDR={timers:[],raf:0};
+function ldrClear(){LDR.timers.forEach(clearTimeout);LDR.timers=[];cancelAnimationFrame(LDR.raf)}
+function at(ms,fn){LDR.timers.push(setTimeout(fn,ms))}
+var GLYPHS="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*";
+function scramble(el,text,dur){
+  var t0=performance.now(),len=text.length;
+  (function step(now){var p=Math.min(1,(now-t0)/dur),lock=Math.floor(p*len),out="";
+    for(var i=0;i<len;i++){var ch=text[i];out+=(i<lock||ch===" ")?ch:GLYPHS[(Math.random()*GLYPHS.length)|0]}
+    el.textContent=out;if(p<1)LDR.timers.push(setTimeout(function(){step(performance.now())},40))})(t0);
+}
+var TAGS=[["LIGHT","ENERGY"],["MOOD","PACE"],["TONE","WARMTH"]];
+function runLoader(key,done){
+  ldrClear();
+  var mix=$("#mix"),rev=$("#krev"),next=$("#resNext"),rin=$("#rin"),win=ACC[key];
+  [mix,rin].forEach(function(el){el.style.setProperty("--c0",win[0]);el.style.setProperty("--c1",win[1]);el.style.setProperty("--win",win[1])});
+  next.classList.add("pending");rev.classList.remove("shown","go");rev.classList.add("hid");
+  $("#lwipe").classList.remove("go");$("#lflash").classList.remove("go");
+  var layers=answers.map(function(oi,qi){return'<div class="mx-l'+(qi?" b"+qi:"")+'"><img alt="" src="data:image/webp;base64,'+IMG.photos[Q[qi].id][oi||0]+'"></div>'}).join("");
+  mix.innerHTML=layers+'<div class="mx-tint"></div><div class="mx-glow"></div><div class="mx-proc"></div><div class="mx-scan"></div>'+
+    '<div class="box"><b></b></div><div class="box"><b></b></div>'+
+    '<div class="mx-rgb"></div><div class="mx-hud"><div class="mx-step"><i></i><span id="mxStep"></span></div><div class="mx-pct" id="mxPct"></div>'+
+    '<div class="mx-cap" id="mxCap"></div><div class="mx-bar"><i id="mxBar"></i></div></div>'+
+    '<div class="mx-match"><div class="t">TASTE MATCH</div><div class="w" id="mxWin"></div></div>';
+  mix.hidden=false;mix.classList.remove("glitch");mix.style.opacity="";
+  var L=$$(".mx-l",mix),imgs=L.map(function(l){return l.querySelector("img")}),scan=$(".mx-scan",mix),proc=$(".mx-proc",mix),boxes=$$(".box",mix),
+      step=$("#mxStep",mix),cap=$("#mxCap",mix),pctEl=$("#mxPct",mix),bar=$("#mxBar",mix),tint=$(".mx-tint",mix),glowL=$(".mx-glow",mix),match=$(".mx-match",mix);
+  var EO="cubic-bezier(.23,1,.32,1)",IO="cubic-bezier(.77,0,.175,1)",anims=[];
+  function A(el,k,o){var a=el.animate(k,o);anims.push(a);return a}
+  if(reduce){
+    L.forEach(function(l,i){l.style.opacity=i?".6":"1"});step.textContent="SCAN 03 / 03";cap.textContent="Analyzing your choices";
+    at(700,function(){tint.style.opacity=".8"});at(1300,finish);return;
+  }
+  var STEP=950,T=[0,STEP,2*STEP];
+  // overall progress readout
+  var t0=performance.now();
+  (function tick(){var p=Math.min(1,(performance.now()-t0)/3000);pctEl.textContent="MATCH "+Math.round(p*100)+"%";bar.style.transform="scaleX("+p.toFixed(3)+")";
+    if(p<1)LDR.raf=requestAnimationFrame(tick)})();
+  answers.forEach(function(oi,i){
+    var t=T[i],l=L[i],q=Q[i];
+    at(t,function(){
+      step.textContent="SCAN 0"+(i+1)+" / 03";scramble(cap,q.short[oi||0].toUpperCase(),300);
+      // new choice lands on top of the stack
+      A(l,i===0?[{opacity:1,clipPath:"inset(50% 0 50% 0)"},{opacity:1,clipPath:"inset(0 0 0 0)"}]
+               :[{opacity:.95,clipPath:"circle(0% at 50% 50%)"},{opacity:.95,clipPath:"circle(80% at 50% 50%)"}],{duration:340,easing:EO,fill:"forwards"});
+      A(imgs[i],[{transform:"scale(1.14)"},{transform:"scale(1.04)"}],{duration:900,easing:EO,fill:"forwards"});
+      // earlier layers melt into abstraction
+      for(var j=0;j<i;j++){var lvl=i-j;
+        A(imgs[j],[{transform:"scale("+(1.04+.08*(lvl-1))+") rotate("+(j%2?-3:3)*(lvl-1)+"deg)",filter:lvl>1?"blur(10px) saturate(1.8)":"blur(0px) saturate(1)"},
+                   {transform:"scale("+(1.12+.08*(lvl-1))+") rotate("+(j%2?-3:3)*lvl+"deg)",filter:"blur("+(lvl*9)+"px) saturate("+(1.4+.4*lvl)+") contrast(1.1)"}],
+          {duration:600,easing:EO,fill:"forwards"})}
+    });
+    // scan pass
+    at(t+230,function(){
+      A(scan,[{transform:"translateY(-130px)"},{transform:"translateY("+((rin.clientHeight||1144)+16)+"px)"}],{duration:620,easing:"cubic-bezier(.45,0,.55,1)",fill:"forwards"});
+      A(proc,[{clipPath:"inset(0 0 100% 0)",opacity:1},{clipPath:"inset(0 0 0 0)",opacity:1,offset:.85},{clipPath:"inset(0 0 0 0)",opacity:0}],{duration:720,easing:"linear",fill:"forwards"});
+      boxes.forEach(function(bx,k){
+        var VX,RW,RH,w=180+Math.random()*170,h=140+Math.random()*150,VX=0,RW=rin.clientWidth||643,RH=rin.clientHeight||1144,x=VX+60+Math.random()*(RW-2*VX-120-w),y=(126+k*380)*RH/1144+Math.random()*120;
+        bx.style.cssText="left:"+x.toFixed(0)+"px;top:"+y.toFixed(0)+"px;width:"+w.toFixed(0)+"px;height:"+h.toFixed(0)+"px";
+        bx.querySelector("b").textContent=TAGS[i][k]+" 0."+(72+Math.floor(Math.random()*26));
+        A(bx,[{opacity:0,transform:"scale(1.25)"},{opacity:1,transform:"scale(1)",offset:.25},{opacity:1,offset:.8},{opacity:0}],{duration:700,delay:120+k*140,easing:EO,fill:"both"});
+      });
+    });
+  });
+  // the stack converges toward the matched result
+  var TC=3*STEP-10;
+  at(TC,function(){
+    step.textContent="BLENDING";scramble(cap,"BLENDING YOUR TASTE",320);
+    imgs.forEach(function(im,j){A(im,[{},{transform:"scale(1.42) rotate("+(j%2?-14:14)+"deg)",filter:"blur(30px) saturate(2.4) contrast(1.2)"}],{duration:700,easing:IO,fill:"forwards"})});
+    A(tint,[{opacity:0},{opacity:.92}],{duration:650,easing:IO,fill:"forwards"});
+    A(glowL,[{opacity:0},{opacity:.55}],{duration:650,delay:150,easing:IO,fill:"forwards"});
+  });
+  at(TC+380,function(){scramble($("#mxWin",mix),RESULTS[key].name,300);A(match,[{opacity:0,transform:"translateY(-50%) scale(.94)"},{opacity:1,transform:"translateY(-50%) scale(1)"}],{duration:300,easing:EO,fill:"forwards"});
+    step.textContent="MATCH FOUND";cap.textContent=""});
+  // glitch, then the result emerges in the same box
+  at(TC+820,function(){glitch(420);Fluid.kick(320);mix.classList.add("glitch");$("#lflash").classList.add("go");finish()});
+  function finish(){
+    rev.classList.remove("hid");rev.classList.add("go","shown");
+    at(reduce?250:440,function(){mix.hidden=true;anims.forEach(function(a){try{a.cancel()}catch(e){}});anims=[];mix.innerHTML="";mix.classList.remove("glitch")});
+    at(reduce?200:520,function(){next.classList.remove("pending");if(done)done()});
+  }
+}
+
+/* ---------- save result (phone) ---------- */
+var dlPromise=null;
+function prefetchDownloads(){
+  if(dlPromise)return dlPromise;
+  dlPromise=(window.claude&&typeof window.claude.use==="function")?Promise.resolve(window.claude.use("downloads")).catch(function(){return null}):Promise.resolve(null);
+  return dlPromise;
+}
+function composeResult(key){
+  var r=RESULTS[key];
+  return Promise.all([document.fonts?document.fonts.load('700 59px "IQOS"'):Promise.resolve(),new Promise(function(res,rej){var im=new Image();im.onload=function(){res(im)};im.onerror=rej;im.src="data:image/webp;base64,"+IMG.mobile[key]})])
+  .then(function(v){
+    var im=v[1],c=document.createElement("canvas");c.width=1080;c.height=1920;var g=c.getContext("2d");
+    g.drawImage(im,0,0,1080,1920);g.fillStyle="#fff";g.textAlign="center";
+    g.font='700 59px "IQOS", sans-serif';
+    r.head.split("<br>").forEach(function(l,i){g.fillText(l,530,924+65*i)});
+    g.fillRect(388.3,1053,276.5,3);
+    g.font='700 39.7px "IQOS", sans-serif';
+    var y=1148.4;
+    r.mbody.forEach(function(p,pi){if(pi)y+=45;p.split("<br>").forEach(function(l){g.fillText(l,533,y);y+=45})});
+    return new Promise(function(res){c.toBlob(function(b){res(b)},"image/jpeg",.92)});
+  });
+}
+var dlBusy=false;
+function saveResult(){
+  if(dlBusy||!resultKey)return;dlBusy=true;var msg=$("#dlmsg");msg.textContent="Preparing image…";
+  composeResult(resultKey).then(function(blob){
+    return prefetchDownloads().then(function(dl){
+      if(!dl){showFallback(blob);msg.textContent="";return}
+      return dl.save({filename:"taste-experience-"+resultKey+".jpg",data:blob}).then(function(){msg.textContent="Result saved."},function(err){
+        var c=err&&err.code;
+        if(c==="declined"){msg.textContent=""}
+        else if(c==="rate_limited"){msg.textContent="Please wait a moment, then tap Save Result again."}
+        else{msg.textContent="";showFallback(blob)}
+      });
+    });
+  }).catch(function(){msg.textContent="Could not create the image. Please try again."}).then(function(){dlBusy=false});
+}
+var fallUrl=null;
+function showFallback(blob){if(fallUrl)URL.revokeObjectURL(fallUrl);fallUrl=URL.createObjectURL(blob);$("#dlimg").src=fallUrl;$("#dlfall").classList.add("open")}
+$("#saveBtn").addEventListener("click",function(e){e.stopPropagation();saveResult()});
+$("#dlclose").addEventListener("click",function(e){e.stopPropagation();$("#dlfall").classList.remove("open")});
+
+/* ---------- routing: kiosk vs phone result ---------- */
+var mode="kiosk";
+function route(){
+  var h=(location.hash||"").replace("#","").toLowerCase();
+  if(RESULTS[h]){mode="phone";var r=RESULTS[h];
+    resultKey=h;buildCard($("#pcard"),h);
+    Fluid.mount($("#pin"));Fluid.setResult(h);setPhoneAmbient(h);prefetchDownloads();
+    document.title="Taste Experience – "+r.name;document.body.style.background="#040b2b";stage.style.background="#040b2b";hot.style.display="none";current&&current.classList.remove("active");current=null;go("mobile");
+  }else{if(mode==="phone"||!current){mode="kiosk";hot.style.display="";reset();go("start")}}
+}
+window.addEventListener("hashchange",route);
+route();
+/* link langsung ke hasil kiosk (untuk review): ?result=fresh | bold | creamy
+   isi jawaban dengan kombinasi pertama di matrix yang menghasilkan hasil itu, lalu jalankan loader + hasil */
+(function(){var m=/[?&]result=(fresh|bold|creamy)(?![a-z])/i.exec(location.search);if(!m||mode!=="kiosk")return;
+  var want=m[1].toLowerCase(),k=Object.keys(cfg.matrix).filter(function(c){return cfg.matrix[c]===want})[0];if(!k)return;
+  function run(){bump();for(var i=0;i<3;i++)answers[i]=+k[i];showResult()}
+  if(document.readyState==="complete")setTimeout(run,400);else window.addEventListener("load",function(){setTimeout(run,400)});})();
+window.__te={go:go,choose:choose,showResult:showResult,answers:answers,setResult:function(k){resultKey=k;buildCard($("#kcard"),k);Fluid.mount($("#rin"));Fluid.setResult(k);prepareQR();},loader:function(k){runLoader(k)},fluid:function(){return Fluid},noFx:function(){reduce=true;cx.clearRect(0,0,1080,1920)}};
+})();
+</script>
+</body>
+</html>
