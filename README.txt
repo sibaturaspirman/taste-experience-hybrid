@@ -4,7 +4,14 @@ TASTE EXPERIENCES – Kiosk TV 43" (portrait)
 ISI FOLDER
 - index.html   : aplikasinya (gambar, font, dan 3 video sudah tertanam di dalamnya)
 - lib/qrcode.js: library pembuat kode QR (supaya QR tetap jalan tanpa internet)
+- manifest.webmanifest, sw.js, icons/: PWA (installable app + cache offline untuk UI)
 - video/       : 3 video background hasil (fresh, bold, creamy) sebagai arsip
+
+PWA (INSTALL / OFFLINE UI)
+- Deploy lewat HTTPS (atau localhost saat dev). file:// tidak mendukung service worker.
+- Buka situs di Chrome → menu Install / “Add to Home Screen”.
+- Setelah install, UI & lib/qrcode di-cache; upload foto QR tetap butuh internet.
+- Saat update folder di server, naikkan versi CACHE di sw.js supaya booth dapat file baru.
 
 CARA PAKAI DI TV
 1. Salin seluruh folder ini ke TV / mini-PC / USB. Jangan pisahkan index.html dari folder lib.
